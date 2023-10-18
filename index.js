@@ -1,5 +1,5 @@
 const express = require('express')
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors')
 require('dotenv').config();
 const app = express()
@@ -29,8 +29,66 @@ async function run() {
     await client.connect();
 
 
+    const productsCollection = client.db('productsDB').collection('products')
 
-    
+
+    // read data
+    app.get('/products', async (req, res) => {
+      const cursor = productsCollection.find()
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+
+
+    // Get a product by ID
+    app.get('/products/id/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // Get products by brand
+    app.get('/products/brand/:brand', async (req, res) => {
+      const brand = req.params.brand;
+      const filter = { brand: brand };
+      const result = await productsCollection.find(filter).toArray();
+      res.send(result);
+    });
+
+
+
+    // Create Product data
+    app.post('/products', async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product)
+      res.send(result)
+    })
+
+
+
+
+    // carts database
+    const cartProductsCollection = client.db('productsDB').collection('carts')
+
+
+    // post
+    app.post('/cartProducts', async(req, res) =>{
+      const product = req.body;
+      const result = await cartProductsCollection.insertOne(product)
+      res.send(result)
+    })
+
+     // get
+     app.get('/cartProducts', async (req, res) => {
+      const cursor = cartProductsCollection.find()
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+
+
+
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -45,9 +103,9 @@ run().catch(console.dir);
 
 // testing
 app.get('/', (req, res) => {
-    res.send('Server is running')
-} )
+  res.send('Server is running')
+})
 
 app.listen(port, () => {
-console.log(`Server is running on port: ${port}`);
+  console.log(`Server is running on port: ${port}`);
 })
